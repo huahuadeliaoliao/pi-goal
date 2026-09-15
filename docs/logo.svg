@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="120" viewBox="0 0 640 120" fill="none">
+  <!-- moon phases (a nod to kimi-code's TUI moon loader), ending in a target -->
+  <g stroke-linecap="round">
+    <!-- new moon -->
+    <circle cx="48" cy="60" r="20" stroke="#94a3b8" stroke-width="2"/>
+    <!-- waxing crescent -->
+    <circle cx="138" cy="60" r="20" stroke="#94a3b8" stroke-width="2"/>
+    <path d="M138 40 A20 20 0 0 1 138 80 A11 20 0 0 0 138 40 Z" fill="#94a3b8"/>
+    <!-- first quarter -->
+    <circle cx="228" cy="60" r="20" stroke="#94a3b8" stroke-width="2"/>
+    <path d="M228 40 A20 20 0 0 1 228 80 L228 40 Z" fill="#94a3b8"/>
+    <!-- waxing gibbous -->
+    <circle cx="318" cy="60" r="20" stroke="#94a3b8" stroke-width="2"/>
+    <path d="M318 40 A20 20 0 0 1 318 80 A11 20 0 0 1 318 40 Z" fill="#94a3b8"/>
+    <!-- connector dots: turns passing -->
+    <circle cx="93" cy="60" r="2.5" fill="#64748b"/>
+    <circle cx="183" cy="60" r="2.5" fill="#64748b"/>
+    <circle cx="273" cy="60" r="2.5" fill="#64748b"/>
+    <circle cx="366" cy="60" r="2.5" fill="#64748b"/>
+    <circle cx="378" cy="60" r="2.5" fill="#64748b"/>
+    <circle cx="390" cy="60" r="2.5" fill="#64748b"/>
+    <!-- full moon = goal reached -->
+    <circle cx="440" cy="60" r="34" stroke="#f59e0b" stroke-width="2" opacity="0.45"/>
+    <circle cx="440" cy="60" r="27" stroke="#f59e0b" stroke-width="2" opacity="0.75"/>
+    <circle cx="440" cy="60" r="20" fill="#fbbf24"/>
+    <circle cx="440" cy="60" r="5" fill="#b45309"/>
+    <!-- wordmark -->
+    <text x="500" y="70" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="26" font-weight="600" fill="#64748b">pi-goal</text>
+  </g>
+</svg>
