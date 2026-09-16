@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="640" height="120" viewBox="0 0 640 120" fill="none">
+  <title>pi-goal — moon phases ending in a target</title>
   <!-- moon phases (a nod to kimi-code's TUI moon loader), ending in a target -->
   <g stroke-linecap="round">
     <!-- new moon -->

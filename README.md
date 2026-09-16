@@ -32,11 +32,20 @@ by slice, across as many runs as it takes. The loop ends only when the agent mar
 ## Install
 
 ```sh
+pi install git:github.com/huahuadeliaoliao/pi-goal       # from git
+pi install npm:pi-goal-moonland                          # from npm, once published
+```
+
+On npm the package is `pi-goal-moonland` — the bare `pi-goal` name was already taken.
+
+Or ad-hoc, without installing: `pi -e /path/to/pi-goal` (the directory or `index.ts` both work).
+
+Manual copy still works too:
+
+```sh
 git clone https://github.com/huahuadeliaoliao/pi-goal.git
 cp -r pi-goal ~/.pi/agent/extensions/goal
 ```
-
-Or ad-hoc, without installing: `pi -e /path/to/pi-goal/index.ts`
 
 ## Usage
 
@@ -73,6 +82,19 @@ Flags:
   paused; explicit `/goal resume` continues it.
 - **Visibility** — a footer status (`goal: active (turn N)`), inline lifecycle markers
   (started/paused/complete/blocked), hidden continuation messages.
+
+## Development
+
+```bash
+npm install
+npm test          # node:test with a mock ExtensionAPI — no real pi process
+npm run check     # tsc --noEmit
+npm run lint      # biome check
+```
+
+The extension is plain TypeScript loaded by pi via jiti — no build step. `@earendil-works/pi-*` and
+`typebox` are peer dependencies (pi bundles them for extensions); they are pinned in `devDependencies`
+only for tests and type-checking.
 
 ## Design provenance
 

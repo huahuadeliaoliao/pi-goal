@@ -20,14 +20,14 @@
  *   --goal-auto-approve (skip the confirmation for model-created goals)
  */
 
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage } from "@earendil-works/pi-ai";
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
 	buildActiveReminder,
 	buildBlockedOutcome,
@@ -35,7 +35,7 @@ import {
 	buildContinuationPrompt,
 	buildInactiveNote,
 } from "./prompts.ts";
-import { createGoalState, isLiveGoal, validateObjective, type GoalState } from "./state.ts";
+import { createGoalState, type GoalState, isLiveGoal, validateObjective } from "./state.ts";
 
 const CONTINUATION_TYPE = "goal-continuation";
 const STATE_ENTRY_TYPE = "goal-state";
@@ -85,7 +85,8 @@ export default function goalMode(pi: ExtensionAPI): void {
 
 	function createGoal(objective: string, ctx?: ExtensionContext): GoalState {
 		const next = createGoalState(validateObjective(objective));
-		if (isLiveGoal(goal)) throw new Error(`A goal already exists (${goal.status}). Use /goal replace or /goal cancel first.`);
+		if (isLiveGoal(goal))
+			throw new Error(`A goal already exists (${goal.status}). Use /goal replace or /goal cancel first.`);
 		setGoal(next, ctx, "created");
 		return next;
 	}
@@ -166,7 +167,7 @@ export default function goalMode(pi: ExtensionAPI): void {
 					return;
 				}
 				if (sub === "pause") {
-					if (!goal || goal.status !== "active") {
+					if (goal?.status !== "active") {
 						ctx.ui.notify("No active goal to pause.", "warning");
 						return;
 					}
@@ -254,7 +255,9 @@ export default function goalMode(pi: ExtensionAPI): void {
 						return fail(err instanceof Error ? err.message : String(err));
 					}
 					if (isLiveGoal(goal) && params.replace !== true) {
-						return fail(`A goal already exists (${goal.status}): "${goal.objective.slice(0, 120)}". Pass replace: true to replace it.`);
+						return fail(
+							`A goal already exists (${goal.status}): "${goal.objective.slice(0, 120)}". Pass replace: true to replace it.`,
+						);
 					}
 					if (pi.getFlag("goal-auto-approve") !== true && ctx.hasUI) {
 						const ok = await ctx.ui.confirm(
@@ -267,17 +270,22 @@ export default function goalMode(pi: ExtensionAPI): void {
 					const created = createGoalState(objective);
 					setGoal(created, ctx, "created");
 					return {
-						content: [{ type: "text", text: `Goal created and active: ${created.objective}\nWork toward it; the runtime continues the goal across turns until you call complete or blocked.` }],
+						content: [
+							{
+								type: "text",
+								text: `Goal created and active: ${created.objective}\nWork toward it; the runtime continues the goal across turns until you call complete or blocked.`,
+							},
+						],
 						details: { goal: created },
 					};
 				}
 				case "complete": {
-					if (!goal || goal.status !== "active") return fail("No active goal to complete.");
+					if (goal?.status !== "active") return fail("No active goal to complete.");
 					setGoal({ ...goal, status: "complete" }, ctx, "complete");
 					return { content: [{ type: "text", text: buildCompleteOutcome(goal) }], details: { goal } };
 				}
 				case "blocked": {
-					if (!goal || goal.status !== "active") return fail("No active goal to block.");
+					if (goal?.status !== "active") return fail("No active goal to block.");
 					setGoal({ ...goal, status: "blocked", reason: params.reason?.trim() || "blocked by agent" }, ctx, "blocked");
 					return { content: [{ type: "text", text: buildBlockedOutcome(goal) }], details: { goal } };
 				}
@@ -287,7 +295,12 @@ export default function goalMode(pi: ExtensionAPI): void {
 					}
 					setGoal({ ...goal, status: "active", reason: undefined }, ctx, "resumed");
 					return {
-						content: [{ type: "text", text: "Goal resumed. Continue working toward the objective; the runtime keeps the goal going across turns." }],
+						content: [
+							{
+								type: "text",
+								text: "Goal resumed. Continue working toward the objective; the runtime keeps the goal going across turns.",
+							},
+						],
 						details: { goal },
 					};
 				}
@@ -307,7 +320,11 @@ export default function goalMode(pi: ExtensionAPI): void {
 		});
 		if (goal && goal.status !== "complete") {
 			const content = goal.status === "active" ? buildActiveReminder(goal) : buildInactiveNote(goal);
-			messages.push({ role: "user", content: [{ type: "text", text: content }], timestamp: Date.now() } as AgentMessage);
+			messages.push({
+				role: "user",
+				content: [{ type: "text", text: content }],
+				timestamp: Date.now(),
+			} as AgentMessage);
 		}
 		return { messages };
 	});
@@ -323,7 +340,7 @@ export default function goalMode(pi: ExtensionAPI): void {
 	// hidden continuation as a followUp. pi drains queues after agent_end and
 	// continues the run, so this works identically in TUI, print, and RPC mode.
 	pi.on("agent_end", async (event, ctx) => {
-		if (!goal || goal.status !== "active") return;
+		if (goal?.status !== "active") return;
 		const stopReason = lastAssistantStopReason(event.messages);
 		if (stopReason === "aborted") {
 			setGoal({ ...goal, status: "paused", reason: "paused after interruption" }, ctx, "paused");
@@ -385,9 +402,12 @@ export default function goalMode(pi: ExtensionAPI): void {
 
 	// Lifecycle markers in the transcript (goal-state entries stay unrendered).
 	pi.registerEntryRenderer(EVENT_ENTRY_TYPE, (entry, _options, theme) => {
-		const data = entry.data as { kind?: GoalEventKind; objective?: string; turnsUsed?: number; reason?: string } | undefined;
+		const data = entry.data as
+			| { kind?: GoalEventKind; objective?: string; turnsUsed?: number; reason?: string }
+			| undefined;
 		if (!data?.kind) return new Text("", 0, 0);
-		const objective = data.objective && data.objective.length > 80 ? `${data.objective.slice(0, 77)}...` : (data.objective ?? "");
+		const objective =
+			data.objective && data.objective.length > 80 ? `${data.objective.slice(0, 77)}...` : (data.objective ?? "");
 		let line: string;
 		switch (data.kind) {
 			case "created":

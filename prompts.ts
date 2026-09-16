@@ -24,7 +24,7 @@ const AUDIT_GUIDANCE = [
 	"context and your tools. Do not try to finish a broad goal in one turn unless the whole",
 	"goal is genuinely small. Most goal turns should not call the goal tool: after completing a",
 	"useful slice, if material work remains, end the turn normally without calling the goal tool",
-	"so the runtime can continue the goal in the next turn. Call op \"complete\" only when all",
+	'so the runtime can continue the goal in the next turn. Call op "complete" only when all',
 	"required work is done and there is no useful next action. Completion audit: before calling",
 	'"complete", verify the current state against the actual objective and every explicit',
 	"requirement. Treat weak or indirect evidence as not complete. Do not mark complete after",
@@ -39,7 +39,7 @@ const AUDIT_GUIDANCE = [
 	'goal turns just to satisfy the audit. Do not use "blocked" because the work is large, hard,',
 	"slow, uncertain, incomplete, still needs validation, would benefit from clarification, or",
 	"needs more goal turns. Once the 3-turn threshold is met and you cannot make meaningful",
-	"progress without user input or an external-state change, call op \"blocked\"; do not keep",
+	'progress without user input or an external-state change, call op "blocked"; do not keep',
 	"reporting the blocker while leaving the goal active. Do not ask the user for input unless a",
 	"real blocker prevents progress.",
 ].join(" ");
