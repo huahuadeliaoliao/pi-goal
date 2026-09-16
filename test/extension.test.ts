@@ -327,7 +327,9 @@ test("turn_end counts goal turns for active goals only", async () => {
 	await mock.commands.get("goal")!.handler("fix tests", mock.ctx);
 	await fireAsync(mock, "turn_end", {}, mock.ctx);
 	await fireAsync(mock, "turn_end", {}, mock.ctx);
-	assert.equal(stateOf(mock).turnsUsed, 2);
+	// The counter is in-memory between runs: observe it via /goal status.
+	await mock.commands.get("goal")!.handler("status", mock.ctx);
+	assert.ok(mock.notifications.at(-1)?.text.includes("Goal turns: 2"));
 	assert.equal(mock.statuses.get("goal"), "goal: active (turn 2)");
 
 	await mock.commands.get("goal")!.handler("pause", mock.ctx);
@@ -335,14 +337,22 @@ test("turn_end counts goal turns for active goals only", async () => {
 	assert.equal(stateOf(mock).turnsUsed, 2, "a paused goal does not count turns");
 });
 
-test("every state change appends a goal-state entry", async () => {
+test("turns persist at run boundaries and shutdown, not on every turn", async () => {
 	const mock = setup();
 	await mock.commands.get("goal")!.handler("fix tests", mock.ctx);
+	const afterStart = stateEntries(mock).length;
+
 	await fireAsync(mock, "turn_end", {}, mock.ctx);
 	await fireAsync(mock, "turn_end", {}, mock.ctx);
-	// create + one entry per turn
-	assert.equal(stateEntries(mock).length, 3);
-	assert.equal(stateOf(mock).turnsUsed, 2);
+	assert.equal(stateEntries(mock).length, afterStart, "no per-turn session writes");
+	assert.equal(mock.statuses.get("goal"), "goal: active (turn 2)", "the footer still tracks turns live");
+
+	await fireAsync(mock, "agent_end", endedRun("end"), mock.ctx);
+	assert.equal(stateEntries(mock).length, afterStart + 1, "one write per run boundary");
+	assert.equal(stateOf(mock).turnsUsed, 2, "the run boundary persists the accrued counter");
+
+	await fireAsync(mock, "session_shutdown", {}, mock.ctx);
+	assert.equal(stateEntries(mock).length, afterStart + 2, "shutdown persists the final counter");
 });
 
 // ------------------------------------------------------------------- context
@@ -415,6 +425,9 @@ test("session_start without a stored goal starts clean", async () => {
 	await fireAsync(mock, "session_start", { reason: "startup" }, mock.ctx);
 	assert.equal(mock.statuses.get("goal"), undefined);
 	assert.equal(mock.appendedEntries.length, 0);
+
+	await fireAsync(mock, "session_shutdown", {}, mock.ctx);
+	assert.equal(mock.appendedEntries.length, 0, "shutdown with no goal writes nothing");
 });
 
 test("--goal starts a goal on startup in TUI mode", async () => {

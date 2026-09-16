@@ -330,10 +330,16 @@ export default function goalMode(pi: ExtensionAPI): void {
 	});
 
 	// Count goal turns (kimi semantics: a turn is a turn, whether it starts a
-	// new run or continues the current one).
+	// new run or continues the current one). In-memory between runs: persists at
+	// run boundaries (agent_end) and on session_shutdown instead of once per turn.
+	// The counter feeds the reminder's "Goal turns so far" and the 3-turn blocked
+	// audit, so a hard kill under-reports it and a blocked declaration may land
+	// slightly late after a crash — accepted trade (quit/reload/SIGTERM/SIGHUP
+	// all emit session_shutdown; only SIGKILL slips through).
 	pi.on("turn_end", async (_event, ctx) => {
 		if (goal?.status !== "active") return;
-		setGoal({ ...goal, turnsUsed: goal.turnsUsed + 1 }, ctx);
+		goal = { ...goal, turnsUsed: goal.turnsUsed + 1, updatedAt: Date.now() };
+		updateStatus(ctx);
 	});
 
 	// The continuation loop: a run ended with the goal still active -> queue a
@@ -345,6 +351,14 @@ export default function goalMode(pi: ExtensionAPI): void {
 		if (stopReason === "aborted") {
 			setGoal({ ...goal, status: "paused", reason: "paused after interruption" }, ctx, "paused");
 			return;
+		}
+		// Run boundary: persist the turn counter accrued since the last write.
+		// Isolated from the loop: a failing appendEntry must not silently stop
+		// continuations — the loop matters more than the counter.
+		try {
+			persistState();
+		} catch {
+			/* session store may be unavailable */
 		}
 		if (stopReason === "error") {
 			// Pi may auto-retry; the agent_settled safety net handles exhaustion.
@@ -361,6 +375,16 @@ export default function goalMode(pi: ExtensionAPI): void {
 	pi.on("agent_settled", async (_event, ctx) => {
 		if (goal?.status === "active" && ctx.isIdle()) {
 			setGoal({ ...goal, status: "paused", reason: "paused after run ended unexpectedly" }, ctx, "paused");
+		}
+	});
+
+	// Clean exit: persist the latest counter so a resumed session restores it.
+	pi.on("session_shutdown", async () => {
+		if (!goal) return;
+		try {
+			persistState();
+		} catch {
+			/* session store may already be closed */
 		}
 	});
 
