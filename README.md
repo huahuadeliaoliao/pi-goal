@@ -33,7 +33,7 @@ by slice, across as many runs as it takes. The loop ends only when the agent mar
 
 ```sh
 pi install git:github.com/huahuadeliaoliao/pi-goal       # from git
-pi install npm:pi-goal-moonland                          # from npm, once published
+pi install npm:pi-goal-moonland                          # from npm
 ```
 
 On npm the package is `pi-goal-moonland` — the bare `pi-goal` name was already taken.
