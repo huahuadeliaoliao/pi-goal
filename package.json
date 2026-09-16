@@ -14,7 +14,8 @@
 		"pi-extension",
 		"goal",
 		"goal-mode",
-		"autonomous"
+		"autonomous",
+		"kimi-code"
 	],
 	"engines": {
 		"node": ">=22.19.0"
@@ -31,7 +32,8 @@
 		],
 		"skills": [
 			"./skills"
-		]
+		],
+		"image": "https://raw.githubusercontent.com/huahuadeliaoliao/pi-goal/main/docs/logo.png"
 	},
 	"scripts": {
 		"check": "tsc --noEmit",
