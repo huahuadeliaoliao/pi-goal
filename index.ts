@@ -23,7 +23,7 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage } from "@earendil-works/pi-ai";
 import { StringEnum } from "@earendil-works/pi-ai";
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { dirname, join } from "node:path";
@@ -114,9 +114,14 @@ export default function goalMode(pi: ExtensionAPI): void {
 	/** Bound pi.send* APIs are fire-and-forget (return undefined), so print/json
 	 *  mode keeps the process alive via ctx.waitForIdle(). A fired run needs a
 	 *  few microtasks before it registers as active; poll isIdle() first
-	 *  (bounded: if the send failed, proceed and let the mode exit normally). */
-	async function awaitRunIfHeadless(ctx: ExtensionContext): Promise<void> {
+	 *  (bounded: if the send failed, proceed and let the mode exit normally).
+	 *  Only command-handler entry points call this, and command contexts
+	 *  (ExtensionCommandContext) carry waitForIdle. */
+	async function awaitRunIfHeadless(ctx: ExtensionCommandContext): Promise<void> {
 		if (ctx.mode !== "print" && ctx.mode !== "json") return;
+		// Defensive: only command contexts carry waitForIdle. If a future caller
+		// passes a plainer ctx, skip the wait instead of throwing mid-headless-run.
+		if (typeof ctx.waitForIdle !== "function") return;
 		const deadline = Date.now() + 10_000;
 		while (ctx.isIdle() && Date.now() < deadline) {
 			await new Promise((r) => setTimeout(r, 20));
@@ -125,7 +130,7 @@ export default function goalMode(pi: ExtensionAPI): void {
 	}
 
 	/** Kick off a goal run from an idle state (command/flag entry points). */
-	async function kick(content: string, ctx: ExtensionContext): Promise<void> {
+	async function kick(content: string, ctx: ExtensionCommandContext): Promise<void> {
 		if (ctx.isIdle()) {
 			pi.sendMessage({ customType: CONTINUATION_TYPE, content, display: false }, { triggerTurn: true });
 		} else {
@@ -207,7 +212,7 @@ export default function goalMode(pi: ExtensionAPI): void {
 		},
 	});
 
-	async function startFromCommand(objective: string, ctx: ExtensionContext): Promise<void> {
+	async function startFromCommand(objective: string, ctx: ExtensionCommandContext): Promise<void> {
 		const created = createGoal(objective, ctx);
 		ctx.ui.notify("Goal started. It will keep working across turns until complete or blocked.", "info");
 		// The objective goes in as a real user message (visible in transcript).
