@@ -58,14 +58,20 @@ cp -r pi-goal ~/.pi/agent/extensions/goal
 | `/goal cancel` | Drop the goal and abort goal-driven work |
 | `/goal replace <objective>` | Drop the current goal and start a new one |
 
-The agent can also start goals itself via its `goal` tool — you get a confirmation prompt
-first (skip it with `--goal-auto-approve`). Say *"help me write a goal"* and the bundled
-**write-goal** skill walks the agent through drafting a verifiable completion contract.
+The agent can also start goals itself via its `goal` tool. Say *"help me write a goal"* and the
+bundled **write-goal** skill walks the agent through drafting a verifiable completion contract —
+you approve the wording in conversation, and the goal starts without a second prompt.
 
 Flags:
 
 - `--goal "<objective>"` — start a TUI/RPC session with a goal already running
-- Headless: `pi -p "/goal <objective>"` runs the goal to completion, then exits
+- `--goal-confirm` — ask for your approval before an agent-created goal starts
+
+Headless: `pi -p "/goal <objective>"` runs the goal to completion, then exits.
+
+**Security note:** a goal is an unattended loop that edits files and runs commands, and
+agent-created goals start immediately by default. If you run pi-goal against untrusted content
+or simply want a human checkpoint, start pi with `--goal-confirm`.
 
 ## How it works
 

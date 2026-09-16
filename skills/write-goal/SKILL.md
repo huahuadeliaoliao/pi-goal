@@ -7,7 +7,7 @@ description: Help the user craft a well-specified /goal objective for goal mode 
 
 Help the user turn a rough intention into a `/goal` objective that goal mode can pursue across many turns without supervision. A goal is not a task description — it is a completion contract. It says what must become *true*, how that truth is *proven*, where the work may and may not *reach*, and when to *stop and report* instead of grinding on.
 
-This skill is about authoring the objective text together with the user. Drafting and starting are separate steps: settle the wording first, and only once the user has approved it, start the goal by calling the `goal` tool with op `create`. Starting an autonomous goal still surfaces a confirmation to the user, so the user keeps the last word on whether it runs.
+This skill is about authoring the objective text together with the user. Drafting and starting are separate steps: settle the wording first, and only once the user has approved it, start the goal by calling the `goal` tool with op `create`. Starting an autonomous goal does not prompt again — the user's approval of the wording is the approval to run it.
 
 ## Ask, don't narrate
 

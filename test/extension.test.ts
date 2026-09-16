@@ -43,7 +43,7 @@ test("registers the goal tool, /goal command, flags and the event renderer", () 
 	assert.ok(tools.has("goal"));
 	assert.ok(commands.has("goal"));
 	assert.ok(flagDefs.has("goal"));
-	assert.ok(flagDefs.has("goal-auto-approve"));
+	assert.ok(flagDefs.has("goal-confirm"));
 	assert.ok(entryRenderers.has("goal-event"));
 });
 
@@ -171,32 +171,36 @@ test("goal tool get reports state", async () => {
 	assert.equal(res.details.goal.status, "active");
 });
 
-test("goal tool create asks for confirmation and honors the answer", async () => {
+test("goal tool create starts immediately by default, without a confirmation prompt", async () => {
+	const mock = setup({ confirm: false }); // if asked, the answer would be no
+	const res = await mock.tools
+		.get("goal")!
+		.execute("t1", { op: "create", objective: "fix tests" }, undefined, undefined, mock.ctx);
+	assert.ok(!res.isError);
+	assert.equal(mock.confirmCalls.length, 0, "no confirm prompt by default");
+	assert.equal(stateOf(mock).status, "active");
+	assert.deepEqual(goalEvents(mock), ["created"]);
+});
+
+test("--goal-confirm re-enables the gate: approval starts, decline cancels", async () => {
 	const declined = setup({ confirm: false });
+	declined.flags.set("goal-confirm", true);
 	const deny = await declined.tools
 		.get("goal")!
 		.execute("t1", { op: "create", objective: "fix tests" }, undefined, undefined, declined.ctx);
 	assert.equal(deny.isError, true);
 	assert.ok(deny.content[0].text.includes("declined"));
+	assert.equal(declined.confirmCalls.length, 1);
 	assert.equal(declined.appendedEntries.length, 0, "declined create leaves no trace");
 
 	const accepted = setup({ confirm: true });
+	accepted.flags.set("goal-confirm", true);
 	const ok = await accepted.tools
 		.get("goal")!
 		.execute("t1", { op: "create", objective: "fix tests" }, undefined, undefined, accepted.ctx);
 	assert.ok(!ok.isError);
+	assert.equal(accepted.confirmCalls.length, 1);
 	assert.equal(stateOf(accepted).status, "active");
-	assert.deepEqual(goalEvents(accepted), ["created"]);
-});
-
-test("goal tool create skips the confirmation with --goal-auto-approve", async () => {
-	const mock = setup({ confirm: false });
-	mock.flags.set("goal-auto-approve", true);
-	const res = await mock.tools
-		.get("goal")!
-		.execute("t1", { op: "create", objective: "fix tests" }, undefined, undefined, mock.ctx);
-	assert.ok(!res.isError, "auto-approve bypasses the confirm prompt");
-	assert.equal(stateOf(mock).status, "active");
 });
 
 test("goal tool create validates and refuses to clobber a live goal without replace", async () => {

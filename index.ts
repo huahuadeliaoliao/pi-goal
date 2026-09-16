@@ -17,7 +17,7 @@
  * - goal tool for the model: get | create | complete | blocked | resume
  * - Bundled write-goal skill (help the user author a good objective)
  * - Flags: --goal "<objective>" (start a TUI/RPC session with a goal),
- *   --goal-auto-approve (skip the confirmation for model-created goals)
+ *   --goal-confirm (require user confirmation for model-created goals)
  */
 
 import { dirname, join } from "node:path";
@@ -104,8 +104,8 @@ export default function goalMode(pi: ExtensionAPI): void {
 		description: "Start the session with an autonomous goal (TUI/RPC only)",
 		type: "string",
 	});
-	pi.registerFlag("goal-auto-approve", {
-		description: "Skip the confirmation prompt when the agent creates a goal",
+	pi.registerFlag("goal-confirm", {
+		description: "Ask for user confirmation when the agent creates a goal",
 		type: "boolean",
 		default: false,
 	});
@@ -231,7 +231,7 @@ export default function goalMode(pi: ExtensionAPI): void {
 		name: "goal",
 		label: "Goal",
 		description:
-			"Inspect or update the session goal. Ops: get (current goal state), create (start an autonomous goal; the user confirms), complete (only with verified evidence for every requirement), blocked (genuine impasse only, after the blocking condition repeats for 3 consecutive goal turns), resume (reactivate a paused/blocked goal).",
+			"Inspect or update the session goal. Ops: get (current goal state), create (start an autonomous goal), complete (only with verified evidence for every requirement), blocked (genuine impasse only, after the blocking condition repeats for 3 consecutive goal turns), resume (reactivate a paused/blocked goal).",
 		parameters: Type.Object({
 			op: StringEnum(["get", "create", "complete", "blocked", "resume"] as const),
 			objective: Type.Optional(Type.String({ description: "Required for create" })),
@@ -259,7 +259,10 @@ export default function goalMode(pi: ExtensionAPI): void {
 							`A goal already exists (${goal.status}): "${goal.objective.slice(0, 120)}". Pass replace: true to replace it.`,
 						);
 					}
-					if (pi.getFlag("goal-auto-approve") !== true && ctx.hasUI) {
+					// Model-created goals start immediately by default; --goal-confirm
+					// re-enables the gate (the write-goal flow's checkpoint is the
+					// conversational approval of the drafted objective).
+					if (pi.getFlag("goal-confirm") === true && ctx.hasUI) {
 						const ok = await ctx.ui.confirm(
 							"Start goal?",
 							`The agent wants to start an autonomous goal:\n\n${objective}\n\nIt will keep working across turns until complete or blocked.`,
